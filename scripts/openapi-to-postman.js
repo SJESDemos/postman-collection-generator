@@ -10,9 +10,8 @@
 
 import Converter from 'openapi-to-postmanv2';
 import { program } from 'commander';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join, basename, dirname } from 'path';
-import { glob } from 'glob';
 
 // Conversion options optimized for AWS APIs
 const CONVERSION_OPTIONS = {
@@ -617,9 +616,10 @@ function generateUUID() {
  * Batch convert all OpenAPI files in a directory
  */
 async function batchConvert(inputDir, outputDir, options = {}) {
-  // Find all OpenAPI files
-  const pattern = join(inputDir, '*.openapi.json');
-  const files = await glob(pattern);
+  const files = readdirSync(inputDir, { withFileTypes: true })
+    .filter(entry => entry.isFile() && entry.name.endsWith('.openapi.json'))
+    .map(entry => join(inputDir, entry.name))
+    .sort((left, right) => left.localeCompare(right));
 
   if (files.length === 0) {
     console.log('No OpenAPI files found in', inputDir);

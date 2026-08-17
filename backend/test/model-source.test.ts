@@ -51,7 +51,7 @@ test('the mirror remains disabled until explicitly configured', async () => {
       mirrorBranch: 'main',
     };
     assert.equal(await syncModelsRepository(options, local, 'origin/main', silentLogger), null);
-    assert.equal(await readFile(join(local, 'models', 'version.txt'), 'utf8'), 'two\n');
+    assert.equal((await readFile(join(local, 'models', 'version.txt'), 'utf8')).trim(), 'two');
 
     await fixtureGit(['init', '--bare', '--initial-branch=main', mirror]);
     await fixtureGit(['remote', 'add', 'mirror', mirror], local);

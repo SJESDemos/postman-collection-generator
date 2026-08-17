@@ -23,7 +23,6 @@ Cloudscape Design System packages include this attribution:
 |---|---|
 | openapi-to-postmanv2 | Apache-2.0 |
 | Commander | MIT |
-| Glob | ISC |
 | TypeScript | Apache-2.0 |
 | Vite | MIT |
 | Smithy Java libraries | Apache-2.0 |
