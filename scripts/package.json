@@ -6,7 +6,7 @@
   "type": "module",
   "main": "openapi-to-postman.js",
   "dependencies": {
-    "commander": "^12.1.0",
+    "commander": "^15.0.0",
     "openapi-to-postmanv2": "^6.3.3"
   },
   "overrides": {
