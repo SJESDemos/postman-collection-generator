@@ -1,0 +1,32 @@
+# build artifacts
+build/
+.gradle/
+bin/
+scripts/node_modules/
+backend/node_modules/
+backend/dist/
+webapp/node_modules/
+webapp/*.tsbuildinfo
+webui/static/
+coverage/
+# generated artifacts
+output/
+# apisync local state (sync anchor, postman map, run reports)
+state/
+# legacy local caches from pre-TypeScript releases
+__pycache__/
+# secrets - Postman environments can contain live AWS credentials
+*.postman_environment.json
+.env
+.env.*
+!.env.example
+*.log
+# os
+.DS_Store
+.idea/
+.vscode/
+
+# local assistant and editor integrations
+.claude/
+.github/copilot-instructions.md
+.github/instructions/mermaid.instructions.md

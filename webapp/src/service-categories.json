@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "source": "https://docs.aws.amazon.com/whitepapers/latest/aws-overview/amazon-web-services-cloud-platform.html",
+  "categories": [
+    {
+      "id": "analytics",
+      "label": "Analytics",
+      "services": ["athena", "cloudsearch", "cloudsearch-domain", "data-pipeline", "databrew", "dataexchange", "datazone", "emr", "emr-serverless", "entityresolution", "firehose", "glue", "kafka", "kafkaconnect", "lakeformation", "osis", "quicksight"],
+      "prefixes": ["cleanrooms", "finspace", "kinesis", "opensearch", "redshift", "timestream"]
+    },
+    {
+      "id": "application-integration",
+      "label": "Application Integration",
+      "services": ["appflow", "appintegrations", "b2bi", "eventbridge", "mq", "mwaa", "mwaa-serverless", "pipes", "scheduler", "schemas", "sfn", "sns", "sqs", "swf"],
+      "prefixes": []
+    },
+    {
+      "id": "blockchain",
+      "label": "Blockchain",
+      "services": [],
+      "prefixes": ["managedblockchain"]
+    },
+    {
+      "id": "business-applications",
+      "label": "Business Applications",
+      "services": ["appfabric", "customer-profiles", "mailmanager", "ses", "sesv2", "socialmessaging", "supplychain", "wickr", "wisdom", "workdocs"],
+      "prefixes": ["chime", "connect", "pinpoint", "workmail"]
+    },
+    {
+      "id": "cloud-financial-management",
+      "label": "Cloud Financial Management",
+      "services": ["account", "applicationcostprofiler", "billing", "billingconductor", "budgets", "freetier", "invoicing", "pricing", "pricing-plan-manager", "savingsplans", "taxsettings"],
+      "prefixes": ["bcm", "cost-", "marketplace-"]
+    },
+    {
+      "id": "compute",
+      "label": "Compute",
+      "services": ["apprunner", "batch", "elastic-beanstalk", "evs", "imagebuilder", "launch-wizard", "lightsail", "outposts", "pcs", "serverlessapplicationrepository"],
+      "prefixes": ["auto-scaling", "ec2", "lambda"]
+    },
+    {
+      "id": "containers",
+      "label": "Containers",
+      "services": ["app-mesh", "ecs", "emr-containers"],
+      "prefixes": ["ecr", "eks"]
+    },
+    {
+      "id": "customer-enablement",
+      "label": "Customer Enablement",
+      "services": ["health", "repostspace", "trustedadvisor"],
+      "prefixes": ["partnercentral", "support"]
+    },
+    {
+      "id": "databases",
+      "label": "Databases",
+      "services": ["dax", "dsql", "elasticache", "elasticsearch-service", "memorydb", "neptunedata", "odb", "pi", "simpledbv2", "timestream-influxdb"],
+      "prefixes": ["docdb", "dynamodb", "keyspaces", "neptune", "rds"]
+    },
+    {
+      "id": "developer-tools",
+      "label": "Developer Tools",
+      "services": ["artifact", "cloud9", "device-farm", "devops-agent", "devops-guru", "proton"],
+      "prefixes": ["code"]
+    },
+    {
+      "id": "end-user-computing",
+      "label": "End User Computing",
+      "services": ["appstream"],
+      "prefixes": ["workspaces"]
+    },
+    {
+      "id": "front-end-web-mobile",
+      "label": "Front-end Web and Mobile",
+      "services": ["appsync", "location"],
+      "prefixes": ["amplify", "cognito", "geo-"]
+    },
+    {
+      "id": "game-tech",
+      "label": "Game Tech",
+      "services": [],
+      "prefixes": ["gamelift"]
+    },
+    {
+      "id": "iot",
+      "label": "Internet of Things",
+      "services": [],
+      "prefixes": ["greengrass", "iot"]
+    },
+    {
+      "id": "ml-ai",
+      "label": "Machine Learning and Artificial Intelligence",
+      "services": ["aiops", "elementalinference", "healthlake", "machine-learning", "medical-imaging", "mturk", "nova-act", "omics", "polly", "qapps", "qbusiness", "qconnect", "rekognition", "textract", "translate", "voice-id"],
+      "prefixes": ["agent-registry", "bedrock", "comprehend", "forecast", "frauddetector", "kendra", "lex-", "lookout", "personalize", "sagemaker", "transcribe"]
+    },
+    {
+      "id": "management-governance",
+      "label": "Management and Governance",
+      "services": ["amp", "appconfig", "appconfigdata", "application-auto-scaling", "application-insights", "application-signals", "auto-scaling-plans", "chatbot", "cloudcontrol", "cloudformation", "config-service", "controlcatalog", "controltower", "fis", "grafana", "oam", "observabilityadmin", "organizations", "ram", "rum", "sustainability", "synthetics", "uxc", "wellarchitected", "xray"],
+      "prefixes": ["cloudtrail", "cloudwatch", "compute-optimizer", "license-manager", "notifications", "resiliencehub", "resource-", "service-catalog", "service-quotas", "ssm"]
+    },
+    {
+      "id": "media",
+      "label": "Media",
+      "services": ["chime-sdk-media-pipelines", "deadline"],
+      "prefixes": ["ivs", "media"]
+    },
+    {
+      "id": "migration-transfer",
+      "label": "Migration and Transfer",
+      "services": ["application-discovery-service", "database-migration-service", "datasync", "drs", "m2", "mgn", "transfer"],
+      "prefixes": ["migration-hub", "migrationhub", "snow"]
+    },
+    {
+      "id": "networking-content-delivery",
+      "label": "Networking and Content Delivery",
+      "services": ["api-gateway", "direct-connect", "global-accelerator", "interconnect", "internetmonitor", "rtbfabric", "servicediscovery", "tnb", "vpc-lattice"],
+      "prefixes": ["apigateway", "arc-", "cloudfront", "elastic-load-balancing", "network", "route-53", "route53"]
+    },
+    {
+      "id": "quantum-technologies",
+      "label": "Quantum Technologies",
+      "services": ["braket"],
+      "prefixes": []
+    },
+    {
+      "id": "satellite",
+      "label": "Satellite",
+      "services": ["groundstation"],
+      "prefixes": []
+    },
+    {
+      "id": "security-identity-compliance",
+      "label": "Security, Identity, and Compliance",
+      "services": ["accessanalyzer", "account-access", "auditmanager", "clouddirectory", "detective", "fms", "guardduty", "iam", "identitystore", "kms", "macie2", "mpa", "network-firewall", "rolesanywhere", "secrets-manager", "shield", "signin", "sts", "verifiedpermissions"],
+      "prefixes": ["acm", "cloudhsm", "directory-service", "inspector", "payment-cryptography", "pca-connector", "security", "signer", "sso", "waf"]
+    },
+    {
+      "id": "storage",
+      "label": "Storage",
+      "services": ["dlm", "ebs", "efs", "glacier", "rbin", "storage-gateway"],
+      "prefixes": ["backup", "fsx", "s3"]
+    }
+  ],
+  "primaryOverrides": {
+    "chime-sdk-media-pipelines": "media",
+    "emr-containers": "analytics",
+    "network-firewall": "security-identity-compliance",
+    "payment-cryptography": "security-identity-compliance",
+    "payment-cryptography-data": "security-identity-compliance",
+    "timestream-influxdb": "databases"
+  },
+  "related": {
+    "agent-registry": ["developer-tools"],
+    "agent-registry-control": ["developer-tools"],
+    "aiops": ["management-governance"],
+    "appflow": ["analytics"],
+    "appsync": ["application-integration"],
+    "cleanroomsml": ["ml-ai"],
+    "cognito-identity": ["security-identity-compliance"],
+    "cognito-identity-provider": ["security-identity-compliance"],
+    "cognito-sync": ["security-identity-compliance"],
+    "connect": ["ml-ai"],
+    "datasync": ["storage"],
+    "devops-agent": ["ml-ai"],
+    "dynamodb": ["analytics"],
+    "eventbridge": ["developer-tools"],
+    "kinesis-video": ["media"],
+    "lambda": ["application-integration"],
+    "location": ["networking-content-delivery"],
+    "network-firewall": ["networking-content-delivery"],
+    "qconnect": ["business-applications"],
+    "s3": ["analytics"],
+    "s3vectors": ["ml-ai"],
+    "securitylake": ["analytics"],
+    "sns": ["front-end-web-mobile"],
+    "sqs": ["developer-tools"],
+    "transfer": ["storage"],
+    "wisdom": ["ml-ai"]
+  }
+}
