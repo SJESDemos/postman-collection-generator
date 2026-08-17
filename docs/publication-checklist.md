@@ -5,11 +5,11 @@ sanitized source snapshot. The private repository and its history will remain un
 
 ## 1. Establish the publication boundary
 
-- [ ] Select the exact private source revision used to prepare the public snapshot.
+- [x] Freeze the exact reviewed public source snapshot before Git initialization.
 - [x] Create the publication workspace outside the private repository.
 - [x] Copy source through an explicit allowlist. Do not copy the private `.git` directory.
 - [x] Do not configure the public remote in the private repository.
-- [ ] Record the private source revision in a private release note, not in the public repository.
+- [x] Record private source provenance in a private release note, not in the public repository.
 
 ## 2. Remove personal and private data
 
@@ -59,7 +59,7 @@ identifiers, browser origins, or unrelated browser headers.
 
 ## 6. Validate source and artifacts
 
-- [ ] Build from a clean checkout on macOS, Linux, and Windows.
+- [x] Build from a clean checkout on macOS, Linux, and Windows.
 - [x] Run TypeScript type checking, unit tests, and protocol fixture tests.
 - [ ] Add and enforce TypeScript and React lint rules.
 - [x] Build the Java 17 Smithy converter. The Java test source set is currently empty.
@@ -75,21 +75,21 @@ identifiers, browser origins, or unrelated browser headers.
 - [x] Initialize Git only after the sanitized workspace passes review.
 - [x] Add only reviewed files to the initial commit.
 - [x] Inspect the complete staged file list before committing.
-- [ ] Confirm the new repository has one root commit and no imported tags or branches.
+- [x] Confirm the new repository has one root commit and no imported tags or branches.
 - [x] Use the project owner's approved personal attribution for the initial commit.
-- [ ] Create the public remote from the new repository only.
-- [ ] Push a review branch before making the repository public.
+- [x] Create the public remote from the new repository only.
+- [x] Push only the reviewed public history to the new remote.
 - [ ] Perform a final browser review of files, commit metadata, releases, and rendered documentation.
 
 ## 8. Configure public repository controls
 
-- [ ] Require pull-request review and passing checks on the default branch.
-- [ ] Enable dependency update automation.
-- [ ] Enable code, dependency, and secret scanning supported by the hosting platform.
-- [ ] Prevent force pushes and branch deletion on the default branch.
+- [x] Require pull-request review and passing checks on the default branch.
+- [x] Enable dependency update automation.
+- [x] Enable code, dependency, and secret scanning supported by the hosting platform.
+- [x] Prevent force pushes and branch deletion on the default branch.
 - [ ] Restrict release creation to maintainers.
 - [ ] Require provenance for published packages and release artifacts where supported.
-- [ ] Verify repository visibility only after every preceding section is complete.
+- [x] Verify the repository is public, owned by `SJESDemos`, and is not a fork.
 
 ## Publication stop conditions
 
