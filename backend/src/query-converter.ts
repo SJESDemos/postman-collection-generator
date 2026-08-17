@@ -53,6 +53,17 @@ function shapeName(shapeId: string): string {
   return shapeId.split('#').at(-1) || shapeId;
 }
 
+function safeDescription(value: unknown, maxLength: number): string {
+  const raw = String(value);
+  const truncated = raw.length > maxLength ? `${raw.slice(0, maxLength)}...` : raw;
+  return truncated
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 export class QueryProtocolConverter {
   private readonly shapes: JsonMap;
   private serviceShape?: [string, JsonMap];
@@ -126,10 +137,9 @@ export class QueryProtocolConverter {
     const traits = definition.traits || {};
     const serviceTrait = traits['aws.api#service'] || {};
     const rawDescription = traits['smithy.api#documentation'] || `AWS ${this.serviceName} API`;
-    const description = String(rawDescription).replace(/<[^>]+>/g, '');
     return {
       title: serviceTrait.sdkId ? `AWS ${serviceTrait.sdkId}` : this.serviceName,
-      description: description.length > 500 ? `${description.slice(0, 500)}...` : description,
+      description: safeDescription(rawDescription, 500),
       version: definition.version || '1.0.0',
       contact: { name: 'AWS Support', url: 'https://aws.amazon.com/support' },
       'x-logo': { url: 'https://aws.amazon.com/favicon.ico', altText: 'AWS' },
@@ -225,7 +235,7 @@ export class QueryProtocolConverter {
     const operation: JsonMap = {
       operationId: operationName,
       summary: operationName,
-      description: traits['smithy.api#documentation'] || '',
+      description: safeDescription(traits['smithy.api#documentation'] || '', 500),
       tags: [this.serviceName],
       parameters: [],
       responses: {
@@ -499,7 +509,7 @@ export class QueryProtocolConverter {
       properties[memberName] = this.schemaForTarget(memberDefinition.target || '');
       const traits = memberDefinition.traits || {};
       if (traits['smithy.api#documentation']) {
-        properties[memberName].description = String(traits['smithy.api#documentation']).slice(0, 200);
+        properties[memberName].description = safeDescription(traits['smithy.api#documentation'], 200);
       }
       if ('smithy.api#required' in traits) {
         required.push(memberName);
@@ -511,7 +521,7 @@ export class QueryProtocolConverter {
     }
     const documentation = definition.traits?.['smithy.api#documentation'];
     if (documentation) {
-      schema.description = String(documentation).slice(0, 200);
+      schema.description = safeDescription(documentation, 200);
     }
     return schema;
   }

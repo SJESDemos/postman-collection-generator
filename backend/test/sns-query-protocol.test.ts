@@ -8,7 +8,7 @@ import test from 'node:test';
 
 import { runtimePaths } from '../src/config.js';
 import { runProcess } from '../src/process.js';
-import { convertQueryService } from '../src/query-converter.js';
+import { convertQueryService, QueryProtocolConverter } from '../src/query-converter.js';
 import type { JsonMap } from '../src/types.js';
 
 function findRequest(items: JsonMap[] | undefined, name: string): JsonMap | undefined {
@@ -31,6 +31,21 @@ test('SNS ListTopics uses a form request and XML response', async () => {
   const openapiDirectory = join(temporary, 'openapi');
   const postmanDirectory = join(temporary, 'postman');
   try {
+    const model = JSON.parse(
+      await readFile(join(models, 'sns', 'service', '2010-03-31', 'sns.json'), 'utf8'),
+    ) as JsonMap;
+    const serviceShape = Object.values(model.shapes as JsonMap).find(
+      (definition) => (definition as JsonMap).type === 'service',
+    ) as JsonMap | undefined;
+    assert.ok(serviceShape);
+    serviceShape.traits = {
+      ...serviceShape.traits,
+      'smithy.api#documentation': '<<script>alert("unsafe")</script>&',
+    };
+    const sanitized = new QueryProtocolConverter(model, 'sns').convert();
+    assert.doesNotMatch(sanitized.info.description, /[<>]/);
+    assert.match(sanitized.info.description, /&lt;&lt;script&gt;/);
+
     await convertQueryService(models, 'sns', openapiDirectory);
     const specification = JSON.parse(
       await readFile(join(openapiDirectory, 'sns.openapi.json'), 'utf8'),

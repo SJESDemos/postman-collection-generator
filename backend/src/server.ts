@@ -184,7 +184,9 @@ export async function startLocalServer(argv = process.argv.slice(2)): Promise<vo
       }
       sendJson(response, 404, { error: 'Not found.' });
     } catch (error) {
-      sendJson(response, 400, { error: error instanceof Error ? error.message : String(error) });
+      const detail = error instanceof Error ? error.message : String(error);
+      consoleLogger.error(`HTTP ${request.method || 'UNKNOWN'} ${url.pathname}: ${detail}`);
+      sendJson(response, 400, { error: 'Request could not be completed. Review the local server log.' });
     }
   });
 
