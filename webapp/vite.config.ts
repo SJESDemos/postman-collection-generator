@@ -7,6 +7,12 @@ function chunkName(moduleId: string): string | undefined {
   if (moduleId.includes('/node_modules/react/') || moduleId.includes('/node_modules/react-dom/')) {
     return 'react';
   }
+  if (moduleId.includes('/node_modules/@cloudscape-design/')) {
+    return 'cloudscape';
+  }
+  if (moduleId.includes('/node_modules/oidc-client-ts/')) {
+    return 'authentication';
+  }
   return undefined;
 }
 
@@ -17,8 +23,8 @@ export default defineConfig({
     outDir: '../webui/static',
     emptyOutDir: true,
     sourcemap: false,
-    // Cloudscape is a cohesive UI runtime. Its 808 kB vendor/application chunk is 229 kB gzip.
-    chunkSizeWarningLimit: 850,
+    // Cloudscape remains one cohesive 787 kB chunk and compresses to about 219 kB.
+    chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
         entryFileNames: 'app.js',

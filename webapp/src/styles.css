@@ -23,6 +23,13 @@ code {
   padding: 48px 24px;
 }
 
+.auth-shell {
+  min-height: calc(100vh - 48px);
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
 .category-navigation {
   color: #16191f;
   min-width: 0;

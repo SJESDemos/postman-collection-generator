@@ -1,15 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { CatalogResponse, Job, JobKind, JobsResponse } from './types';
+import { accessToken } from './auth';
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '');
+const localRequestToken = document
+  .querySelector<HTMLMetaElement>('meta[name="apisync-token"]')
+  ?.content;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
+  const bearerToken = accessToken();
+  if (bearerToken) headers.set('Authorization', `Bearer ${bearerToken}`);
   if (init?.method && init.method !== 'GET') {
     headers.set('Content-Type', 'application/json');
-    if (window.APISYNC_TOKEN && window.APISYNC_TOKEN !== '{{APISYNC_TOKEN}}') {
-      headers.set('X-Apisync-Token', window.APISYNC_TOKEN);
+    if (localRequestToken && localRequestToken !== '{{APISYNC_TOKEN}}') {
+      headers.set('X-Apisync-Token', localRequestToken);
     }
   }
   const response = await fetch(`${apiBaseUrl}${path}`, { ...init, headers });

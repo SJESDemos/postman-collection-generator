@@ -4,13 +4,16 @@
 import { parseArgs } from 'node:util';
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import { join } from 'node:path';
 
+import { exportServiceCatalog } from './catalog-export.js';
 import {
   repositoryOptionsFromEnvironment,
   resolveInputPath,
   runtimePaths,
   validateRepositoryOptions,
 } from './config.js';
+import { resolveModelsRepository } from './model-source.js';
 import {
   applyAdoption,
   checkPipeline,
@@ -27,6 +30,7 @@ const HELP = `postman-collection-generator
 
 Usage:
   apisync [repository options] check [--json]
+  apisync [repository options] catalog [--json]
   apisync init [--json]
   apisync [repository options] refresh [--all | --service a,b] [options]
   apisync adopt --workspace NAME_OR_ID [--yes]
@@ -187,7 +191,7 @@ async function main(argv = process.argv.slice(2)): Promise<number> {
     throw new ApplicationError(`Unexpected positional arguments: ${parsed.positionals.slice(1).join(' ')}`);
   }
   const command = parsed.positionals[0]!;
-  if (!['init', 'check', 'refresh', 'adopt', 'reconcile'].includes(command)) {
+  if (!['init', 'check', 'catalog', 'refresh', 'adopt', 'reconcile'].includes(command)) {
     throw new ApplicationError(`Unknown command '${command}'.\n\n${HELP}`);
   }
   const context: PipelineContext = {
@@ -212,6 +216,18 @@ async function main(argv = process.argv.slice(2)): Promise<number> {
     const report = await checkPipeline(context);
     if (parsed.values.json) console.log(JSON.stringify(report, null, 2));
     else renderCheck(report);
+    return 0;
+  }
+  if (command === 'catalog') {
+    const modelsRepository = await resolveModelsRepository(
+      context.repository,
+      context.paths,
+      context.logger,
+    );
+    const output = join(context.paths.applicationHome, 'service-catalog.json');
+    const count = await exportServiceCatalog(join(modelsRepository, 'models'), output);
+    if (parsed.values.json) console.log(JSON.stringify({ services: count, output }, null, 2));
+    else console.log(`Exported ${count} services to ${output}`);
     return 0;
   }
   if (command === 'refresh') {

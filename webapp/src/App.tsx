@@ -189,7 +189,12 @@ function CategoryNavigation({
   );
 }
 
-function App() {
+interface AppProps {
+  authenticationEnabled?: boolean;
+  onSignOut?: () => void;
+}
+
+function App({ authenticationEnabled = false, onSignOut }: AppProps) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategoryId, setActiveCategoryId] = useState(initialCategory);
@@ -233,7 +238,9 @@ function App() {
         const active = jobs.active_job_id
           ? jobs.jobs.find((job) => job.id === jobs.active_job_id)
           : jobs.jobs[0];
-        if (active) setCurrentJob(active);
+        if (active) {
+          void api.job(active.id).then(setCurrentJob).catch(showError);
+        }
       })
       .catch(showError);
   }, [loadCatalog, showError]);
@@ -247,7 +254,7 @@ function App() {
           if (job.status !== 'running') void loadCatalog();
         })
         .catch(showError);
-    }, 1000);
+    }, 3000);
     return () => window.clearInterval(timer);
   }, [currentJob, loadCatalog, showError]);
 
@@ -417,7 +424,7 @@ function App() {
         <Container header={<Header variant="h2">Open the local server URL</Header>}>
           <SpaceBetween size="s">
             <Box>This application cannot run directly from a file path.</Box>
-            <Box>Run <code>./webui.py</code>, then open the localhost URL printed by the command.</Box>
+            <Box>Run <code>npm run serve</code>, then open the localhost URL printed by the command.</Box>
           </SpaceBetween>
         </Container>
       </main>
@@ -428,11 +435,18 @@ function App() {
     <>
       <TopNavigation
         identity={{ href: '/', title: 'AWS API Collections' }}
-        utilities={[{
-          type: 'button',
-          text: catalog?.workspace_configured ? catalog.workspace_name : 'Workspace not configured',
-          disableUtilityCollapse: true,
-        }]}
+        utilities={[
+          {
+            type: 'button',
+            text: catalog?.workspace_configured ? catalog.workspace_name : 'Workspace not configured',
+            disableUtilityCollapse: true,
+          },
+          ...(authenticationEnabled && onSignOut ? [{
+            type: 'button' as const,
+            text: 'Sign out',
+            onClick: onSignOut,
+          }] : []),
+        ]}
       />
       <AppLayout
         contentType="table"

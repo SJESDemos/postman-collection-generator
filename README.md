@@ -36,6 +36,7 @@ Python and containers are not required.
 npm ci --prefix backend
 npm ci --prefix scripts
 npm ci --prefix webapp
+npm ci --prefix deploy/aws
 ./gradlew installDist
 npm run build
 ```
@@ -91,6 +92,7 @@ application never pushes to the configured source remote.
 ```bash
 npm run cli -- init
 npm run cli -- check
+npm run cli -- catalog
 npm run cli -- refresh
 npm run cli -- refresh --all
 npm run cli -- refresh --service sns,sts,sqs --dry-run
@@ -114,6 +116,7 @@ npm run cli -- refresh \
 |---|---|
 | `init` | Create neutral local configuration without replacing existing files |
 | `check` | Report pending model and operation changes without modifying collections |
+| `catalog` | Export service metadata for an optional hosted deployment |
 | `refresh` | Synchronize models, convert selected services, publish changed collections, and update local state |
 | `refresh --dry-run` | Convert and report without merging, publishing, or changing collection state |
 | `adopt` | Bind a Postman workspace and propose mappings to existing collections |
@@ -151,15 +154,68 @@ The interface provides:
 The local server binds only to `127.0.0.1`. State-changing requests require a per-process token
 injected into the served page.
 
-### Static Hosting
+## AWS Deployment
 
 Vite writes the browser artifact to ignored `webui/static/`. Continuous integration and releases
 build it from `webapp/package-lock.json`.
 
-The static application can be deployed from a private S3 bucket through CloudFront and WAF. A
-deployed browser must set `VITE_API_BASE_URL` to a protected API. Static hosting cannot run Git,
-Java conversion, or Postman publishing by itself. The optional AWS execution backend remains a
-separate architecture decision.
+The optional TypeScript AWS CDK module under `deploy/aws/` deploys the complete hosted application.
+
+| AWS service | Responsibility |
+|---|---|
+| S3 and CloudFront | Private React hosting and HTTPS delivery |
+| AWS WAF | Managed request filtering and rate limiting |
+| Cognito | Single-administrator sign-in and software-token MFA |
+| API Gateway and Lambda | Protected browser API |
+| DynamoDB and S3 | Job records, configuration, reports, and generated artifacts |
+| CodeBuild | Managed Git, Node.js 24, and Java 17 pipeline jobs |
+| Secrets Manager | Postman API key storage |
+| EventBridge | CodeBuild completion handling |
+
+No ECS service, Fargate service, ECR repository, or customer-managed container image is created.
+CodeBuild uses an AWS-maintained build image internally.
+
+The deployment must run in `us-east-1` because the CloudFront certificate and web access control
+list are regional deployment inputs. Set account-specific values outside the repository:
+
+```bash
+export PCG_ACCOUNT_ID=123456789012
+export CDK_DEFAULT_REGION=us-east-1
+export PCG_DOMAIN_NAME=collections.example.com
+export PCG_HOSTED_ZONE_ID=Z00000000000000000000
+export PCG_HOSTED_ZONE_NAME=example.com
+export PCG_CERTIFICATE_ARN=arn:aws:acm:us-east-1:123456789012:certificate/example
+
+npm run build
+npm run cdk --prefix deploy/aws -- bootstrap "aws://${PCG_ACCOUNT_ID}/${CDK_DEFAULT_REGION}"
+npm run cdk --prefix deploy/aws -- deploy --require-approval never
+```
+
+Export the public AWS service catalog and upload the approved runtime-state allowlist:
+
+```bash
+export APISYNC_HOME=/path/to/private/application-state
+npm run cli -- catalog --models-dir /path/to/api-models-aws
+npm run seed --prefix deploy/aws -- --state-dir "${APISYNC_HOME}"
+```
+
+The seeding command accepts only `services.json`, `postman.json`, `postman-map.json`,
+`ops-inventory.json`, `sync-state.json`, and the generated `service-catalog.json`. It does not read
+environment exports, credentials, or historical reports.
+
+Create the administrator after deployment:
+
+```bash
+export PCG_ADMIN_EMAIL=administrator@example.com
+npm run create-admin --prefix deploy/aws
+```
+
+Cognito sends the temporary password by email. The first sign-in requires a new password and
+software-token MFA registration. Replace the generated `apiKey` value in the stack's Postman secret
+through Secrets Manager before running a publish job.
+
+The accepted hosted design and its security boundaries are recorded in
+[ADR-0002](docs/decisions/0002-aws-hosted-deployment.md).
 
 ## Protocol Behavior
 
@@ -206,10 +262,12 @@ Keep real AWS credentials in a private Postman environment or another approved s
 ```bash
 npm test
 npm run build:web
+npm run build:aws
 ./gradlew test installDist
 npm audit --prefix backend
 npm audit --prefix scripts
 npm audit --prefix webapp
+npm audit --prefix deploy/aws
 ```
 
 The Node test suite verifies optional mirror behavior and the complete SNS `ListTopics` conversion
@@ -221,6 +279,7 @@ from Smithy through the generated Postman Collection.
 backend/                     Shared TypeScript core, command line, and local HTTP server
 config/                      Neutral local-configuration examples
 docs/decisions/              Architecture decision records
+deploy/aws/                  TypeScript AWS CDK deployment and operator commands
 scripts/                     OpenAPI to Postman converter
 src/main/java/               Smithy REST protocol converter
 tests/fixtures/              Sanitized protocol fixtures

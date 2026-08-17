@@ -126,6 +126,10 @@ export async function startLocalServer(argv = process.argv.slice(2)): Promise<vo
         sendJson(response, 200, await catalog.response());
         return;
       }
+      if (request.method === 'GET' && url.pathname === '/api/config') {
+        sendJson(response, 200, { authentication: null });
+        return;
+      }
       if (request.method === 'GET' && url.pathname === '/api/jobs') {
         sendJson(response, 200, jobs.snapshot());
         return;

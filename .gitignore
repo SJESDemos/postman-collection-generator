@@ -7,6 +7,9 @@ backend/node_modules/
 backend/dist/
 webapp/node_modules/
 webapp/*.tsbuildinfo
+deploy/aws/node_modules/
+deploy/aws/dist/
+deploy/aws/cdk.out/
 webui/static/
 coverage/
 # generated artifacts

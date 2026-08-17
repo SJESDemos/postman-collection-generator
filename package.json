@@ -4,13 +4,14 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
-    "build": "npm run build --prefix backend && npm run build --prefix webapp",
+    "build": "npm run build --prefix backend && npm run build --prefix webapp && npm run build --prefix deploy/aws",
     "build:backend": "npm run build --prefix backend",
     "build:web": "npm run build --prefix webapp",
+    "build:aws": "npm run build --prefix deploy/aws",
     "cli": "npm run cli --prefix backend --",
     "serve": "npm run serve --prefix backend --",
     "test": "npm test --prefix backend",
-    "verify": "npm test --prefix backend && npm run build --prefix webapp"
+    "verify": "npm test --prefix backend && npm run build --prefix webapp && npm run build --prefix deploy/aws"
   },
   "engines": {
     "node": ">=24"

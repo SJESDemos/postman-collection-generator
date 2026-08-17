@@ -43,11 +43,17 @@ jobs:
       - name: Install browser dependencies
         run: npm ci --prefix webapp
 
+      - name: Install AWS deployment dependencies
+        run: npm ci --prefix deploy/aws
+
       - name: Test TypeScript backend
         run: npm test
 
       - name: Build browser application
         run: npm run build:web
+
+      - name: Build AWS deployment
+        run: npm run build:aws
 
       - name: Build Java converter
         run: ./gradlew test installDist
@@ -61,3 +67,6 @@ jobs:
 
       - name: Audit browser dependencies
         run: npm audit --prefix webapp --audit-level=high
+
+      - name: Audit AWS deployment dependencies
+        run: npm audit --prefix deploy/aws --audit-level=high

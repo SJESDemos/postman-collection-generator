@@ -1,0 +1,31 @@
+{
+  "name": "@sjesdemos/postman-collection-generator-aws",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "cdk": "cdk",
+    "create-admin": "ts-node scripts/create-admin.ts",
+    "seed": "ts-node scripts/seed-state.ts",
+    "synth": "cdk synth",
+    "test": "npm run build && cdk synth --quiet"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudformation": "^3.0.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.0.0",
+    "@aws-sdk/client-s3": "^3.0.0",
+    "aws-cdk-lib": "^2.0.0",
+    "constructs": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "aws-cdk": "^2.0.0",
+    "esbuild": "^0.25.0",
+    "ts-node": "^10.9.0",
+    "typescript": "~5.9.2"
+  }
+}
