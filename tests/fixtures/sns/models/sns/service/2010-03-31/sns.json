@@ -1,0 +1,72 @@
+{
+  "smithy": "2.0",
+  "shapes": {
+    "example.sns#Sns": {
+      "type": "service",
+      "version": "2010-03-31",
+      "operations": [
+        {
+          "target": "example.sns#ListTopics"
+        }
+      ],
+      "traits": {
+        "aws.api#service": {
+          "sdkId": "SNS",
+          "endpointPrefix": "sns"
+        },
+        "aws.protocols#awsQuery": {},
+        "smithy.api#xmlNamespace": {
+          "uri": "http://sns.amazonaws.com/doc/2010-03-31/"
+        }
+      }
+    },
+    "example.sns#ListTopics": {
+      "type": "operation",
+      "input": {
+        "target": "example.sns#ListTopicsInput"
+      },
+      "output": {
+        "target": "example.sns#ListTopicsResponse"
+      }
+    },
+    "example.sns#ListTopicsInput": {
+      "type": "structure",
+      "members": {
+        "NextToken": {
+          "target": "smithy.api#String"
+        }
+      },
+      "traits": {
+        "smithy.api#input": {}
+      }
+    },
+    "example.sns#ListTopicsResponse": {
+      "type": "structure",
+      "members": {
+        "Topics": {
+          "target": "example.sns#TopicsList"
+        },
+        "NextToken": {
+          "target": "smithy.api#String"
+        }
+      },
+      "traits": {
+        "smithy.api#output": {}
+      }
+    },
+    "example.sns#TopicsList": {
+      "type": "list",
+      "member": {
+        "target": "example.sns#Topic"
+      }
+    },
+    "example.sns#Topic": {
+      "type": "structure",
+      "members": {
+        "TopicArn": {
+          "target": "smithy.api#String"
+        }
+      }
+    }
+  }
+}

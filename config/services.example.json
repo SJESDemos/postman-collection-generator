@@ -1,0 +1,7 @@
+{
+  "tracked": [
+    "sns",
+    "sqs",
+    "sts"
+  ]
+}

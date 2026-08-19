@@ -1,0 +1,23 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+      nodejs: 24
+    commands:
+      - npm ci --prefix backend
+      - npm ci --prefix scripts
+      - npm run build --prefix backend
+      - ./gradlew --no-daemon installDist
+  pre_build:
+    commands:
+      - export APISYNC_HOME="$CODEBUILD_SRC_DIR/.cloud-state"
+      - mkdir -p "$APISYNC_HOME"
+      - aws s3 sync "s3://$STATE_BUCKET/state/" "$APISYNC_HOME/" --only-show-errors
+  build:
+    commands:
+      - bash deploy/aws/run-codebuild-job.sh

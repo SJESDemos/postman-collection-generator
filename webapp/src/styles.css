@@ -1,0 +1,194 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+
+:root {
+  background: #f2f3f3;
+  color: #16191f;
+  font-family: "Amazon Ember", "Helvetica Neue", Roboto, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+code {
+  color: #3f4e57;
+  font-family: "Amazon Ember Mono", "Courier New", monospace;
+  font-size: 12px;
+}
+
+.direct-open {
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 48px 24px;
+}
+
+.auth-shell {
+  min-height: calc(100vh - 48px);
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.category-navigation {
+  color: #16191f;
+  min-width: 0;
+  padding: 18px 12px 28px;
+}
+
+.category-navigation__heading {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px 14px;
+}
+
+.category-navigation__all,
+.category-navigation__category,
+.category-navigation__toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.category-navigation__all {
+  align-items: center;
+  border-radius: 2px;
+  display: flex;
+  font-weight: 700;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 6px 9px;
+  text-align: left;
+  width: 100%;
+}
+
+.category-navigation__all:hover,
+.category-navigation__row:hover {
+  background: #eaeded;
+}
+
+.category-navigation__all.is-active,
+.category-navigation__row.is-active {
+  background: #e7f3f7;
+  box-shadow: inset 3px 0 #0073bb;
+  color: #0073bb;
+}
+
+.category-navigation__list {
+  margin-top: 5px;
+}
+
+.category-navigation__group {
+  border-top: 1px solid #eaeded;
+}
+
+.category-navigation__row {
+  align-items: stretch;
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr);
+  min-height: 38px;
+}
+
+.category-navigation__toggle {
+  position: relative;
+}
+
+.category-navigation__toggle::before {
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid #414d5c;
+  border-top: 4px solid transparent;
+  content: "";
+  display: block;
+  left: 12px;
+  position: absolute;
+  top: 15px;
+  transition: transform 120ms ease;
+}
+
+.category-navigation__toggle.is-expanded::before {
+  transform: rotate(90deg);
+}
+
+.category-navigation__toggle:focus-visible,
+.category-navigation__category:focus-visible,
+.category-navigation__all:focus-visible {
+  outline: 2px solid #0073bb;
+  outline-offset: -2px;
+}
+
+.category-navigation__category {
+  align-items: center;
+  display: flex;
+  font-size: 14px;
+  font-weight: 600;
+  gap: 8px;
+  justify-content: space-between;
+  line-height: 18px;
+  min-width: 0;
+  padding: 7px 8px 7px 0;
+  text-align: left;
+}
+
+.category-navigation__category > span:first-child {
+  overflow-wrap: anywhere;
+}
+
+.category-navigation__counts {
+  color: #687078;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.category-navigation__attention {
+  color: #8d6605;
+}
+
+.category-navigation__services {
+  background: #fafafa;
+  display: grid;
+  gap: 7px;
+  max-height: 340px;
+  overflow: auto;
+  padding: 9px 8px 11px 35px;
+}
+
+.category-navigation__services label {
+  min-width: 0;
+}
+
+.service-filters {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(260px, 1fr) 180px 180px;
+  width: min(760px, 100%);
+}
+
+.service-cell {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.job-output {
+  background: #17212b;
+  color: #e7edf0;
+  font-family: "Amazon Ember Mono", "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  margin: 0;
+  max-height: 380px;
+  overflow: auto;
+  padding: 16px;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 900px) {
+  .service-filters {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+}
