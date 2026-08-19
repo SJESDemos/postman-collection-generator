@@ -129,7 +129,7 @@ export class PostmanCollectionGeneratorStack extends cdk.Stack {
       },
     });
     const domainPrefix = `pcg-${cdk.Aws.ACCOUNT_ID}`;
-    userPool.addDomain('HostedUiDomain', {
+    const userPoolDomain = userPool.addDomain('HostedUiDomain', {
       cognitoDomain: { domainPrefix },
     });
     new cognito.CfnUserPoolGroup(this, 'AdministratorGroup', {
@@ -235,7 +235,7 @@ export class PostmanCollectionGeneratorStack extends cdk.Stack {
       projectRoot: join(props.repositoryRoot, 'backend'),
     } satisfies Partial<nodejs.NodejsFunctionProps>;
 
-    const hostedUiDomain = `https://${domainPrefix}.auth.${this.region}.${cdk.Aws.URL_SUFFIX}`;
+    const hostedUiDomain = userPoolDomain.baseUrl();
     const apiFunctionLogs = new logs.LogGroup(this, 'ApiFunctionLogs', {
       retention: logs.RetentionDays.ONE_MONTH,
       removalPolicy: cdk.RemovalPolicy.DESTROY,

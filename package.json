@@ -11,7 +11,7 @@
     "cli": "npm run cli --prefix backend --",
     "serve": "npm run serve --prefix backend --",
     "test": "npm test --prefix backend",
-    "verify": "npm test --prefix backend && npm run build --prefix webapp && npm run build --prefix deploy/aws"
+    "verify": "npm test --prefix backend && npm run build --prefix webapp && npm test --prefix deploy/aws"
   },
   "engines": {
     "node": ">=24"
