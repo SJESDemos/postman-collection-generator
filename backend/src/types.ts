@@ -14,6 +14,12 @@ export const consoleLogger: Logger = {
   error: (message) => console.error(message),
 };
 
+export const stderrLogger: Logger = {
+  info: (message) => console.error(message),
+  warn: (message) => console.error(message),
+  error: (message) => console.error(message),
+};
+
 export interface RepositoryOptions {
   modelsDir?: string;
   modelsUrl: string;
@@ -76,6 +82,7 @@ export interface Job {
   finished_at: string | null;
   return_code: number | null;
   output: string;
+  result: JsonMap | null;
 }
 
 export class ApplicationError extends Error {

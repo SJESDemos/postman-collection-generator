@@ -1,7 +1,7 @@
 # build artifacts
 build/
 .gradle/
-bin/
+/bin/
 scripts/node_modules/
 backend/node_modules/
 backend/dist/

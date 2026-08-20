@@ -24,7 +24,7 @@ import {
   type PipelineContext,
 } from './pipeline.js';
 import type { JsonMap, RepositoryOptions } from './types.js';
-import { ApplicationError, consoleLogger } from './types.js';
+import { ApplicationError, consoleLogger, stderrLogger } from './types.js';
 
 const HELP = `postman-collection-generator
 
@@ -197,7 +197,7 @@ async function main(argv = process.argv.slice(2)): Promise<number> {
   const context: PipelineContext = {
     repository: repositoryOptions(parsed.values),
     paths: runtimePaths(),
-    logger: consoleLogger,
+    logger: parsed.values.json ? stderrLogger : consoleLogger,
   };
 
   if (command === 'init') {

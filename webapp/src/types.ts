@@ -28,6 +28,25 @@ export interface CatalogResponse {
   updated_at: string;
 }
 
+export interface CheckServiceChange {
+  service: string;
+  ops_added: string[];
+  ops_removed: string[];
+}
+
+export interface CheckResult extends Record<string, unknown> {
+  initialized: boolean;
+  message?: string;
+  anchor?: string;
+  source_ref: string;
+  source_head?: string;
+  source_commits_pending?: number;
+  local_sync_pending?: number;
+  mirror_remote?: string | null;
+  changed_tracked: CheckServiceChange[];
+  untracked_changed: number;
+}
+
 export interface Job {
   id: string;
   kind: JobKind;
@@ -38,6 +57,7 @@ export interface Job {
   finished_at: string | null;
   return_code: number | null;
   output: string;
+  result: Record<string, unknown> | null;
 }
 
 export interface JobsResponse {

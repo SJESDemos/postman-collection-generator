@@ -145,11 +145,12 @@ The interface provides:
 
 - All-service and AWS-category views
 - Expandable categories and service-level selection
-- Service search, status filters, and protocol filters
+- Service search, status filters, protocol filters, and paginated results
+- AWS model update checks with visible progress and per-service operation changes
 - Track and untrack actions
 - Read-only conversion previews
 - Explicit Postman publishing
-- Local job status and output
+- Structured job results and expandable pipeline output
 
 The local server binds only to `127.0.0.1`. State-changing requests require a per-process token
 injected into the served page.
@@ -259,13 +260,17 @@ Keep real AWS credentials in a private Postman environment or another approved s
 ```bash
 npm test
 npm run build:web
-npm run build:aws
+npm test --prefix deploy/aws
 ./gradlew test installDist
 npm audit --prefix backend
 npm audit --prefix scripts
 npm audit --prefix webapp
 npm audit --prefix deploy/aws
 ```
+
+AWS deployment tests require the `PCG_DOMAIN_NAME`, `PCG_HOSTED_ZONE_ID`,
+`PCG_HOSTED_ZONE_NAME`, and `PCG_CERTIFICATE_ARN` inputs documented above. Continuous integration
+uses neutral test values and synthesizes the complete stack.
 
 The Node test suite verifies optional mirror behavior and the complete SNS `ListTopics` conversion
 from Smithy through the generated Postman Collection.

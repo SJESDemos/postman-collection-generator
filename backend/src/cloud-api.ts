@@ -52,6 +52,7 @@ const dynamodb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
 interface StoredJob extends Job {
   build_id?: string;
   output_key: string;
+  result_key: string;
   expires_at: number;
 }
 
@@ -201,7 +202,11 @@ async function activeJobId(): Promise<string | null> {
   return null;
 }
 
-function publicJob(item: Record<string, unknown>, output = ''): Job {
+export function publicJob(
+  item: Record<string, unknown>,
+  output = '',
+  result: JsonMap | null = null,
+): Job {
   return {
     id: String(item.id),
     kind: item.kind as Job['kind'],
@@ -212,6 +217,7 @@ function publicJob(item: Record<string, unknown>, output = ''): Job {
     finished_at: item.finished_at ? String(item.finished_at) : null,
     return_code: typeof item.return_code === 'number' ? item.return_code : null,
     output,
+    result,
   };
 }
 
@@ -245,8 +251,13 @@ async function getJob(jobId: string): Promise<Job> {
     ConsistentRead: true,
   }));
   if (!result.Item || result.Item.id === LOCK_ID) throw new HttpError(404, 'Job not found.');
-  const output = await jobOutput(String(result.Item.output_key));
-  return publicJob(result.Item, output);
+  const outputKey = typeof result.Item.output_key === 'string' ? result.Item.output_key : '';
+  const resultKey = typeof result.Item.result_key === 'string' ? result.Item.result_key : '';
+  const [output, jobResult] = await Promise.all([
+    outputKey ? jobOutput(outputKey) : Promise.resolve(''),
+    resultKey ? readJson<JsonMap | null>(resultKey, null) : Promise.resolve(null),
+  ]);
+  return publicJob(result.Item, output, jobResult);
 }
 
 async function assertNoActiveJob(): Promise<void> {
@@ -311,7 +322,9 @@ async function startJob(payload: JsonMap): Promise<Job> {
     finished_at: null,
     return_code: null,
     output: '',
+    result: null,
     output_key: `jobs/${id}/output.log`,
+    result_key: `jobs/${id}/result.json`,
     expires_at: epoch + JOB_RETENTION_SECONDS,
   };
 

@@ -8,7 +8,7 @@ process.env.JOBS_TABLE = 'test-jobs';
 process.env.CODEBUILD_PROJECT = 'test-build';
 process.env.ORIGIN_HEADER_VALUE = 'test-origin';
 
-const { claimGroups } = await import('../src/cloud-api.js');
+const { claimGroups, publicJob } = await import('../src/cloud-api.js');
 const { normalizeBuildId } = await import('../src/cloud-build-events.js');
 
 test('claimGroups accepts API Gateway string and array claim formats', () => {
@@ -29,4 +29,25 @@ test('normalizeBuildId accepts CodeBuild API identifiers and EventBridge ARNs', 
     normalizeBuildId(`arn:aws:codebuild:us-east-1:123456789012:build/${id}`),
     id,
   );
+});
+
+test('publicJob includes structured results and supports earlier stored jobs', () => {
+  const stored = {
+    id: 'job-1',
+    kind: 'check',
+    services: [],
+    create_missing: false,
+    status: 'succeeded',
+    started_at: '2026-08-19T10:00:00.000Z',
+    finished_at: '2026-08-19T10:02:00.000Z',
+    return_code: 0,
+  };
+  const result = { source_commits_pending: 25, changed_tracked: [] };
+
+  assert.deepEqual(publicJob(stored, 'complete', result), {
+    ...stored,
+    output: 'complete',
+    result,
+  });
+  assert.equal(publicJob(stored).result, null);
 });

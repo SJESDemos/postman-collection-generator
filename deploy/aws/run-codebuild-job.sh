@@ -9,6 +9,7 @@ set -uo pipefail
 : "${STATE_BUCKET:?STATE_BUCKET is required}"
 
 job_log="${APISYNC_HOME}/job-${APISYNC_JOB_ID}.log"
+result_json="/tmp/postman-collection-generator-${APISYNC_JOB_ID}-result.json"
 mkdir -p "${APISYNC_HOME}"
 
 case "${APISYNC_JOB_KIND}" in
@@ -31,8 +32,25 @@ case "${APISYNC_JOB_KIND}" in
 esac
 
 printf 'Starting %s job %s\n' "${APISYNC_JOB_KIND}" "${APISYNC_JOB_ID}" | tee "${job_log}"
-"${command[@]}" 2>&1 | tee -a "${job_log}"
-pipeline_status=${PIPESTATUS[0]}
+"${command[@]}" > "${result_json}" 2> >(tee -a "${job_log}" >&2)
+pipeline_status=$?
+result_status=0
+if [[ -s "${result_json}" ]]; then
+  cat "${result_json}" | tee -a "${job_log}"
+  if node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "${result_json}"; then
+    aws s3 cp "${result_json}" "s3://${STATE_BUCKET}/jobs/${APISYNC_JOB_ID}/result.json" \
+      --content-type "application/json" \
+      --cache-control "no-store" \
+      --only-show-errors
+    result_status=$?
+  else
+    printf 'ERROR: Pipeline result was not valid JSON.\n' | tee -a "${job_log}"
+    result_status=1
+  fi
+else
+  printf 'ERROR: Pipeline did not produce a result.\n' | tee -a "${job_log}"
+  result_status=1
+fi
 
 models_root="${APISYNC_HOME}/models/api-models-aws/models"
 if [[ -d "${models_root}" ]]; then
@@ -57,6 +75,7 @@ aws s3 cp "${job_log}" "s3://${STATE_BUCKET}/jobs/${APISYNC_JOB_ID}/output.log" 
 log_status=$?
 
 if [[ ${pipeline_status} -ne 0 ]]; then exit "${pipeline_status}"; fi
+if [[ ${result_status} -ne 0 ]]; then exit "${result_status}"; fi
 if [[ ${catalog_status} -ne 0 ]]; then exit "${catalog_status}"; fi
 if [[ ${state_status} -ne 0 ]]; then exit "${state_status}"; fi
 exit "${log_status}"

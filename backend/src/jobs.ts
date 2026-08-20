@@ -45,6 +45,7 @@ export class JobManager {
       finished_at: null,
       return_code: null,
       output: '',
+      result: null,
     };
     this.jobs.set(id, job);
     this.activeJobId = id;
@@ -87,6 +88,7 @@ export class JobManager {
     try {
       if (job.kind === 'check') {
         const report = await checkPipeline(context);
+        job.result = report;
         this.append(jobId, JSON.stringify(report, null, 2));
         returnCode = 0;
       } else {
@@ -95,6 +97,7 @@ export class JobManager {
           dryRun: job.kind === 'preview',
           createMissing: job.create_missing,
         });
+        job.result = outcome.report;
         this.append(jobId, JSON.stringify(outcome.report, null, 2));
         returnCode = outcome.exitCode;
       }

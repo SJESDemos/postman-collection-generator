@@ -53,7 +53,7 @@ export default function Root() {
   }
   return (
     <>
-      <TopNavigation identity={{ href: '/', title: 'AWS API Collections' }} />
+      <TopNavigation identity={{ href: '/', title: 'Postman Collection Generator' }} />
       <main className="auth-shell">
         <ContentLayout header={<Header variant="h1">Administrator sign-in</Header>}>
           <SpaceBetween size="m">

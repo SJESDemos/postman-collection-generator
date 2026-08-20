@@ -7,13 +7,13 @@ import Box from '@cloudscape-design/components/box';
 import BreadcrumbGroup from '@cloudscape-design/components/breadcrumb-group';
 import Button from '@cloudscape-design/components/button';
 import Checkbox from '@cloudscape-design/components/checkbox';
-import ColumnLayout from '@cloudscape-design/components/column-layout';
-import Container from '@cloudscape-design/components/container';
 import ContentLayout from '@cloudscape-design/components/content-layout';
+import ExpandableSection from '@cloudscape-design/components/expandable-section';
 import Flashbar, { type FlashbarProps } from '@cloudscape-design/components/flashbar';
 import Header from '@cloudscape-design/components/header';
 import Link from '@cloudscape-design/components/link';
 import Modal from '@cloudscape-design/components/modal';
+import Pagination from '@cloudscape-design/components/pagination';
 import Select, { type SelectProps } from '@cloudscape-design/components/select';
 import SpaceBetween from '@cloudscape-design/components/space-between';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
@@ -32,12 +32,16 @@ import {
 import type {
   CatalogResponse,
   CategorizedService,
+  CheckResult,
+  CheckServiceChange,
   CollectionStatus,
   Job,
   JobKind,
 } from './types';
 
 type ScopeFilter = 'all' | 'tracked' | 'untracked' | 'unmapped';
+
+const PAGE_SIZE = 20;
 
 const scopeOptions: SelectProps.Option[] = [
   { label: 'All statuses', value: 'all' },
@@ -60,6 +64,19 @@ function formatAge(value: string): string {
   return `${Math.floor(elapsedHours / 24)}d ago`;
 }
 
+function formatDuration(startedAt: string, finishedAt: string | null): string {
+  const end = finishedAt ? new Date(finishedAt).getTime() : Date.now();
+  const seconds = Math.max(0, Math.round((end - new Date(startedAt).getTime()) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return remainder > 0 ? `${minutes}m ${remainder}s` : `${minutes}m`;
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function collectionStatus(status: CollectionStatus) {
   if (status === 'mapped') return <StatusIndicator type="success">Mapped</StatusIndicator>;
   if (status === 'missing') return <StatusIndicator type="error">Deleted</StatusIndicator>;
@@ -70,6 +87,25 @@ function trackingStatus(tracked: boolean) {
   return tracked
     ? <StatusIndicator type="success">Tracked</StatusIndicator>
     : <StatusIndicator type="stopped">Untracked</StatusIndicator>;
+}
+
+function isCheckServiceChange(value: unknown): value is CheckServiceChange {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<CheckServiceChange>;
+  return typeof candidate.service === 'string'
+    && Array.isArray(candidate.ops_added)
+    && candidate.ops_added.every((operation) => typeof operation === 'string')
+    && Array.isArray(candidate.ops_removed)
+    && candidate.ops_removed.every((operation) => typeof operation === 'string');
+}
+
+function isCheckResult(value: Record<string, unknown> | null): value is CheckResult {
+  if (!value) return false;
+  return typeof value.initialized === 'boolean'
+    && typeof value.source_ref === 'string'
+    && Array.isArray(value.changed_tracked)
+    && value.changed_tracked.every(isCheckServiceChange)
+    && typeof value.untracked_changed === 'number';
 }
 
 interface CategoryNavigationProps {
@@ -141,7 +177,9 @@ function CategoryNavigation({
           const isExpanded = expanded.has(category.id);
           const isActive = activeCategoryId === category.id;
           const trackedCount = categoryServices.filter((service) => service.tracked).length;
-          const unmappedCount = categoryServices.filter((service) => service.tracked && service.collection_status !== 'mapped').length;
+          const unmappedCount = categoryServices.filter(
+            (service) => service.tracked && service.collection_status !== 'mapped',
+          ).length;
           return (
             <div className="category-navigation__group" key={category.id}>
               <div className={`category-navigation__row ${isActive ? 'is-active' : ''}`}>
@@ -164,7 +202,14 @@ function CategoryNavigation({
                   <span className="category-navigation__counts">
                     {categoryServices.length}
                     {trackedCount > 0 && <span title={`${trackedCount} tracked`}> / {trackedCount}</span>}
-                    {unmappedCount > 0 && <span className="category-navigation__attention" title={`${unmappedCount} need creation`}> / {unmappedCount}</span>}
+                    {unmappedCount > 0 && (
+                      <span
+                        className="category-navigation__attention"
+                        title={`${unmappedCount} need creation`}
+                      >
+                        {' '}/ {unmappedCount}
+                      </span>
+                    )}
                   </span>
                 </button>
               </div>
@@ -189,6 +234,229 @@ function CategoryNavigation({
   );
 }
 
+interface ModelUpdatePanelProps {
+  job: Job | null;
+  services: CategorizedService[];
+}
+
+function ModelUpdatePanel({ job, services }: ModelUpdatePanelProps) {
+  const serviceNames = useMemo(
+    () => new Map(services.map((service) => [service.id, service.name])),
+    [services],
+  );
+  const result = job && isCheckResult(job.result) ? job.result : null;
+
+  if (!job) {
+    return (
+      <section className="model-update-panel is-idle" aria-labelledby="model-update-title">
+        <div className="model-update-panel__heading">
+          <div>
+            <Box id="model-update-title" variant="h2">AWS model updates</Box>
+            <Box color="text-body-secondary">No update check has run in this deployment.</Box>
+          </div>
+          <StatusIndicator type="pending">Not checked</StatusIndicator>
+        </div>
+      </section>
+    );
+  }
+
+  if (job.status === 'running') {
+    return (
+      <section
+        className="model-update-panel is-running"
+        aria-labelledby="model-update-title"
+        aria-live="polite"
+      >
+        <div className="model-update-panel__heading">
+          <div>
+            <Box id="model-update-title" variant="h2">Checking AWS model updates</Box>
+            <Box color="text-body-secondary">
+              Started at {new Date(job.started_at).toLocaleTimeString()}. Typical duration is 2-3 minutes.
+            </Box>
+          </div>
+          <StatusIndicator type="in-progress">Running</StatusIndicator>
+        </div>
+        <div className="model-update-activity" aria-hidden="true"><span /></div>
+        <div className="model-update-panel__running-copy">
+          Loading the AWS model source and comparing tracked service operations.
+        </div>
+      </section>
+    );
+  }
+
+  if (job.status === 'failed') {
+    return (
+      <section className="model-update-panel is-error" aria-labelledby="model-update-title">
+        <div className="model-update-panel__heading">
+          <div>
+            <Box id="model-update-title" variant="h2">AWS model update check failed</Box>
+            <Box color="text-body-secondary">
+              Finished in {formatDuration(job.started_at, job.finished_at)}.
+            </Box>
+          </div>
+          <StatusIndicator type="error">Failed</StatusIndicator>
+        </div>
+        {job.output && (
+          <ExpandableSection headerText="Failure details" defaultExpanded>
+            <pre className="job-output">{job.output}</pre>
+          </ExpandableSection>
+        )}
+      </section>
+    );
+  }
+
+  if (!result) {
+    return (
+      <section className="model-update-panel is-success" aria-labelledby="model-update-title">
+        <div className="model-update-panel__heading">
+          <div>
+            <Box id="model-update-title" variant="h2">AWS model update check complete</Box>
+            <Box color="text-body-secondary">
+              Finished in {formatDuration(job.started_at, job.finished_at)}. Detailed results were not retained for this earlier run.
+            </Box>
+          </div>
+          <StatusIndicator type="success">Complete</StatusIndicator>
+        </div>
+      </section>
+    );
+  }
+
+  if (!result.initialized) {
+    return (
+      <section className="model-update-panel is-warning" aria-labelledby="model-update-title">
+        <div className="model-update-panel__heading">
+          <div>
+            <Box id="model-update-title" variant="h2">Synchronization baseline required</Box>
+            <Box color="text-body-secondary">{result.message || 'No synchronization state exists.'}</Box>
+          </div>
+          <StatusIndicator type="warning">Action required</StatusIndicator>
+        </div>
+      </section>
+    );
+  }
+
+  const sourceCommits = result.source_commits_pending ?? 0;
+  const changedTracked = result.changed_tracked;
+  const untrackedChanged = result.untracked_changed;
+  const localSyncPending = result.local_sync_pending ?? 0;
+
+  return (
+    <section className="model-update-panel is-success" aria-labelledby="model-update-title">
+      <div className="model-update-panel__heading">
+        <div>
+          <Box id="model-update-title" variant="h2">AWS model update check complete</Box>
+          <Box color="text-body-secondary">
+            Finished {formatAge(job.finished_at || job.started_at)} in {formatDuration(job.started_at, job.finished_at)}.
+          </Box>
+        </div>
+        <StatusIndicator type="success">Complete</StatusIndicator>
+      </div>
+
+      <div className="model-update-summary">
+        <div className="model-update-stat">
+          <span className="model-update-stat__value">{sourceCommits}</span>
+          <span className="model-update-stat__label">Source commits</span>
+        </div>
+        <div className="model-update-stat">
+          <span className="model-update-stat__value">{changedTracked.length}</span>
+          <span className="model-update-stat__label">Tracked services changed</span>
+        </div>
+        <div className="model-update-stat">
+          <span className="model-update-stat__value">{untrackedChanged}</span>
+          <span className="model-update-stat__label">Untracked services changed</span>
+        </div>
+      </div>
+
+      <div className="model-update-panel__sync-note">
+        {pluralize(localSyncPending, 'commit')} pending on the local synchronization branch. This check did not change any Postman collections.
+      </div>
+
+      {changedTracked.length > 0 ? (
+        <ExpandableSection
+          defaultExpanded
+          headerText={`Tracked service changes (${changedTracked.length})`}
+        >
+          <div className="model-change-table-wrap">
+            <table className="model-change-table">
+              <thead>
+                <tr>
+                  <th scope="col">Service</th>
+                  <th scope="col">Operation changes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {changedTracked.map((change) => (
+                  <tr key={change.service}>
+                    <th scope="row">
+                      <span>{serviceNames.get(change.service) || change.service}</span>
+                      <code>{change.service}</code>
+                    </th>
+                    <td>
+                      {change.ops_added.length === 0 && change.ops_removed.length === 0 ? (
+                        <span className="model-change-table__metadata">Model metadata changed</span>
+                      ) : (
+                        <div className="operation-changes">
+                          {change.ops_added.length > 0 && (
+                            <div className="operation-change">
+                              <span className="operation-label is-added">Added</span>
+                              <span className="operation-list">
+                                {change.ops_added.map((operation) => <code key={operation}>{operation}</code>)}
+                              </span>
+                            </div>
+                          )}
+                          {change.ops_removed.length > 0 && (
+                            <div className="operation-change">
+                              <span className="operation-label is-removed">Removed</span>
+                              <span className="operation-list">
+                                {change.ops_removed.map((operation) => <code key={operation}>{operation}</code>)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </ExpandableSection>
+      ) : (
+        <div className="model-update-panel__no-changes">
+          <StatusIndicator type="success">No tracked service models changed</StatusIndicator>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PipelineJobPanel({ job }: { job: Job }) {
+  const statusType = job.status === 'running' ? 'in-progress' : job.status === 'succeeded' ? 'success' : 'error';
+  const statusText = job.status === 'running' ? 'Running' : job.status === 'succeeded' ? 'Complete' : 'Failed';
+  const title = job.kind === 'preview' ? 'Collection preview' : 'Collection publish';
+
+  return (
+    <section className={`pipeline-job-panel is-${job.status}`} aria-live="polite">
+      <div className="pipeline-job-panel__heading">
+        <div>
+          <Box variant="h2">{title}</Box>
+          <Box color="text-body-secondary">
+            {pluralize(job.services.length, 'service')}; started at {new Date(job.started_at).toLocaleTimeString()}
+            {job.finished_at ? `; finished in ${formatDuration(job.started_at, job.finished_at)}` : ''}.
+          </Box>
+        </div>
+        <StatusIndicator type={statusType}>{statusText}</StatusIndicator>
+      </div>
+      {job.status === 'running' && <div className="model-update-activity" aria-hidden="true"><span /></div>}
+      {(job.output || job.status === 'running') && (
+        <ExpandableSection headerText="Pipeline log" defaultExpanded={job.status === 'failed'}>
+          <pre className="job-output">{job.output || 'Waiting for pipeline output...'}</pre>
+        </ExpandableSection>
+      )}
+    </section>
+  );
+}
+
 interface AppProps {
   authenticationEnabled?: boolean;
   onSignOut?: () => void;
@@ -197,13 +465,16 @@ interface AppProps {
 function App({ authenticationEnabled = false, onSignOut }: AppProps) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [navigationOpen, setNavigationOpen] = useState(() => window.innerWidth >= 1000);
   const [activeCategoryId, setActiveCategoryId] = useState(initialCategory);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [filteringText, setFilteringText] = useState('');
   const [scope, setScope] = useState<ScopeFilter>('all');
   const [protocol, setProtocol] = useState('all');
+  const [currentPageIndex, setCurrentPageIndex] = useState(1);
   const [createMissing, setCreateMissing] = useState(true);
   const [currentJob, setCurrentJob] = useState<Job | null>(null);
+  const [latestCheck, setLatestCheck] = useState<Job | null>(null);
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [flashItems, setFlashItems] = useState<FlashbarProps.MessageDefinition[]>([]);
 
@@ -232,34 +503,72 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
   }, [showError]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadJobs() {
+      try {
+        const response = await api.jobs();
+        const activeSummary = response.active_job_id
+          ? response.jobs.find((job) => job.id === response.active_job_id)
+          : response.jobs.find((job) => job.status === 'running');
+        const checkSummary = response.jobs.find((job) => job.kind === 'check');
+        const ids = [...new Set([activeSummary?.id, checkSummary?.id].filter((id): id is string => Boolean(id)))];
+        const details = await Promise.all(ids.map((id) => api.job(id)));
+        if (cancelled) return;
+        const jobsById = new Map(details.map((job) => [job.id, job]));
+        if (activeSummary) setCurrentJob(jobsById.get(activeSummary.id) || activeSummary);
+        if (checkSummary) setLatestCheck(jobsById.get(checkSummary.id) || checkSummary);
+      } catch (error) {
+        if (!cancelled) showError(error);
+      }
+    }
+
     void loadCatalog();
-    void api.jobs()
-      .then((jobs) => {
-        const active = jobs.active_job_id
-          ? jobs.jobs.find((job) => job.id === jobs.active_job_id)
-          : jobs.jobs[0];
-        if (active) {
-          void api.job(active.id).then(setCurrentJob).catch(showError);
-        }
-      })
-      .catch(showError);
+    void loadJobs();
+    return () => { cancelled = true; };
   }, [loadCatalog, showError]);
 
+  const runningJobId = currentJob?.status === 'running'
+    ? currentJob.id
+    : latestCheck?.status === 'running'
+      ? latestCheck.id
+      : null;
+
   useEffect(() => {
-    if (!currentJob || currentJob.status !== 'running') return undefined;
+    if (!runningJobId) return undefined;
+    let cancelled = false;
     const timer = window.setInterval(() => {
-      void api.job(currentJob.id)
+      void api.job(runningJobId)
         .then((job) => {
-          setCurrentJob(job);
-          if (job.status !== 'running') void loadCatalog();
+          if (cancelled) return;
+          setCurrentJob((current) => current?.id === job.id ? job : current);
+          if (job.kind === 'check') setLatestCheck(job);
+          if (job.status !== 'running') {
+            if (job.status === 'failed') {
+              setFlashItems([{
+                type: 'error',
+                header: job.kind === 'check' ? 'AWS model update check failed' : 'Pipeline job failed',
+                content: 'Open the job details for the recorded output.',
+                dismissible: true,
+                onDismiss: () => setFlashItems([]),
+                id: `job-${job.id}`,
+              }]);
+            }
+            void loadCatalog();
+          }
         })
         .catch(showError);
     }, 3000);
-    return () => window.clearInterval(timer);
-  }, [currentJob, loadCatalog, showError]);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [loadCatalog, runningJobId, showError]);
 
   const services = useMemo(
-    () => (catalog?.services ?? []).map(categorizeService).sort((left, right) => left.name.localeCompare(right.name)),
+    () => (catalog?.services ?? [])
+      .map(categorizeService)
+      .sort((left, right) => left.name.localeCompare(right.name)),
     [catalog],
   );
 
@@ -288,29 +597,49 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
       const scopeMatches = scope === 'all'
         || (scope === 'tracked' && service.tracked)
         || (scope === 'untracked' && !service.tracked)
-        || (scope === 'unmapped' && service.collection_status !== 'mapped');
+        || (scope === 'unmapped' && service.tracked && service.collection_status !== 'mapped');
       const protocolMatches = protocol === 'all' || service.protocol === protocol;
       return categoryMatches && queryMatches && scopeMatches && protocolMatches;
     });
   }, [activeCategoryId, filteringText, protocol, scope, services]);
+
+  useEffect(() => {
+    setCurrentPageIndex(1);
+  }, [activeCategoryId, filteringText, protocol, scope]);
+
+  const pagesCount = Math.max(1, Math.ceil(visibleServices.length / PAGE_SIZE));
+
+  useEffect(() => {
+    if (currentPageIndex > pagesCount) setCurrentPageIndex(pagesCount);
+  }, [currentPageIndex, pagesCount]);
+
+  const pagedServices = useMemo(
+    () => visibleServices.slice((currentPageIndex - 1) * PAGE_SIZE, currentPageIndex * PAGE_SIZE),
+    [currentPageIndex, visibleServices],
+  );
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedIds.has(service.id)),
     [selectedIds, services],
   );
 
-  const selectedVisibleServices = useMemo(
-    () => visibleServices.filter((service) => selectedIds.has(service.id)),
-    [selectedIds, visibleServices],
+  const selectedPageServices = useMemo(
+    () => pagedServices.filter((service) => selectedIds.has(service.id)),
+    [pagedServices, selectedIds],
   );
 
-  const jobRunning = currentJob?.status === 'running';
+  const jobRunning = currentJob?.status === 'running' || latestCheck?.status === 'running';
   const trackedCount = services.filter((service) => service.tracked).length;
-  const mappedCount = services.filter((service) => service.collection_status === 'mapped').length;
-  const needsCreationCount = services.filter((service) => service.tracked && service.collection_status !== 'mapped').length;
+  const mappedCount = services.filter(
+    (service) => service.tracked && service.collection_status === 'mapped',
+  ).length;
+  const needsCreationCount = services.filter(
+    (service) => service.tracked && service.collection_status !== 'mapped',
+  ).length;
 
   function changeCategory(categoryId: string) {
     setActiveCategoryId(categoryId);
+    if (window.innerWidth < 1000) setNavigationOpen(false);
     const url = new URL(window.location.href);
     if (categoryId === 'all') url.searchParams.delete('category');
     else url.searchParams.set('category', categoryId);
@@ -352,9 +681,15 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
       return;
     }
     try {
-      const job = await api.startJob(kind, selectedServices.map((service) => service.id), createMissing);
+      const job = await api.startJob(
+        kind,
+        kind === 'check' ? [] : selectedServices.map((service) => service.id),
+        createMissing,
+      );
       setCurrentJob(job);
+      if (kind === 'check') setLatestCheck(job);
       setPublishModalVisible(false);
+      setFlashItems([]);
     } catch (error) {
       showError(error);
     }
@@ -376,8 +711,10 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
     {
       id: 'category',
       header: 'Primary category',
-      cell: (service) => categories.find((category) => category.id === service.primaryCategoryId)?.label ?? 'Unclassified',
-      minWidth: 210,
+      cell: (service) => categories.find(
+        (category) => category.id === service.primaryCategoryId,
+      )?.label ?? 'Unclassified',
+      minWidth: 190,
     },
     {
       id: 'protocol',
@@ -420,13 +757,14 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
   if (window.location.protocol === 'file:') {
     return (
       <main className="direct-open">
-        <Header variant="h1">AWS API Collections</Header>
-        <Container header={<Header variant="h2">Open the local server URL</Header>}>
+        <Header variant="h1">Postman Collection Generator</Header>
+        <section className="direct-open__message">
+          <Header variant="h2">Open the local server URL</Header>
           <SpaceBetween size="s">
             <Box>This application cannot run directly from a file path.</Box>
             <Box>Run <code>npm run serve</code>, then open the localhost URL printed by the command.</Box>
           </SpaceBetween>
-        </Container>
+        </section>
       </main>
     );
   }
@@ -434,13 +772,8 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
   return (
     <>
       <TopNavigation
-        identity={{ href: '/', title: 'AWS API Collections' }}
+        identity={{ href: '/', title: 'Postman Collection Generator' }}
         utilities={[
-          {
-            type: 'button',
-            text: catalog?.workspace_configured ? catalog.workspace_name : 'Workspace not configured',
-            disableUtilityCollapse: true,
-          },
           ...(authenticationEnabled && onSignOut ? [{
             type: 'button' as const,
             text: 'Sign out',
@@ -451,8 +784,19 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
       <AppLayout
         contentType="table"
         navigationWidth={330}
-        minContentWidth={760}
+        navigationOpen={navigationOpen}
+        onNavigationChange={({ detail }) => setNavigationOpen(detail.open)}
+        minContentWidth={0}
         toolsHide
+        ariaLabels={{
+          navigation: 'Service category navigation',
+          navigationToggle: 'Open service category navigation',
+          navigationClose: 'Close service category navigation',
+          notifications: 'Notifications',
+          tools: 'Tools',
+          toolsClose: 'Close tools',
+          toolsToggle: 'Open tools',
+        }}
         navigation={(
           <CategoryNavigation
             categories={categories}
@@ -467,7 +811,10 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
           <BreadcrumbGroup
             items={activeCategoryId === 'all'
               ? [{ text: 'All Services', href: './' }]
-              : [{ text: 'All Services', href: './' }, { text: categoryLabel, href: `?category=${activeCategoryId}` }]}
+              : [
+                  { text: 'All Services', href: './' },
+                  { text: categoryLabel, href: `?category=${activeCategoryId}` },
+                ]}
             onFollow={(event) => {
               if (event.detail.href === './') {
                 event.preventDefault();
@@ -482,12 +829,28 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
             header={(
               <Header
                 variant="h1"
-                description="Track AWS services and create or refresh their Postman collections."
+                description={catalog?.updated_at
+                  ? `${catalog.workspace_configured ? `Workspace: ${catalog.workspace_name} | ` : ''}Catalog updated ${formatAge(catalog.updated_at)}`
+                  : 'AWS service catalog'}
                 actions={(
-                  <SpaceBetween direction="horizontal" size="xs">
-                    <Button iconName="status-pending" disabled={jobRunning} onClick={() => void startJob('check')}>Check source</Button>
-                    <Button iconName="refresh" loading={loading} onClick={() => void loadCatalog()}>Reload</Button>
-                  </SpaceBetween>
+                  <div className="page-header-actions">
+                    <Button
+                      variant="primary"
+                      iconName="status-pending"
+                      loading={latestCheck?.status === 'running'}
+                      disabled={jobRunning && latestCheck?.status !== 'running'}
+                      onClick={() => void startJob('check')}
+                    >
+                      Check AWS model updates
+                    </Button>
+                    <Button
+                      iconName="refresh"
+                      ariaLabel="Reload service catalog"
+                      loading={loading}
+                      disabled={jobRunning}
+                      onClick={() => void loadCatalog()}
+                    />
+                  </div>
                 )}
               >
                 {categoryLabel}
@@ -495,14 +858,30 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
             )}
           >
             <SpaceBetween size="l">
-              <Container>
-                <ColumnLayout columns={4} variant="text-grid">
-                  <div><Box variant="awsui-key-label">Available services</Box><Box variant="awsui-value-large">{services.length}</Box></div>
-                  <div><Box variant="awsui-key-label">Tracked</Box><Box variant="awsui-value-large">{trackedCount}</Box></div>
-                  <div><Box variant="awsui-key-label">Mapped collections</Box><Box variant="awsui-value-large">{mappedCount}</Box></div>
-                  <div><Box variant="awsui-key-label">Need creation</Box><Box variant="awsui-value-large">{needsCreationCount}</Box></div>
-                </ColumnLayout>
-              </Container>
+              <section className="application-summary" aria-label="Collection summary">
+                <div className="application-summary__grid">
+                  <div className="application-summary__metric">
+                    <span>Available services</span>
+                    <strong>{services.length}</strong>
+                  </div>
+                  <div className="application-summary__metric">
+                    <span>Tracked</span>
+                    <strong>{trackedCount}</strong>
+                  </div>
+                  <div className="application-summary__metric">
+                    <span>Mapped collections</span>
+                    <strong>{mappedCount}</strong>
+                  </div>
+                  <div className="application-summary__metric">
+                    <span>Need creation</span>
+                    <strong>{needsCreationCount}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <ModelUpdatePanel job={latestCheck} services={services} />
+
+              {currentJob && currentJob.kind !== 'check' && <PipelineJobPanel job={currentJob} />}
 
               <Table
                 variant="full-page"
@@ -513,18 +892,18 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
                 loadingText="Loading AWS services"
                 selectionType="multi"
                 trackBy="id"
-                selectedItems={selectedVisibleServices}
+                selectedItems={selectedPageServices}
                 onSelectionChange={({ detail }) => {
-                  const visibleIds = new Set(visibleServices.map((service) => service.id));
-                  const nextVisibleIds = new Set(detail.selectedItems.map((service) => service.id));
+                  const pageIds = new Set(pagedServices.map((service) => service.id));
+                  const nextPageIds = new Set(detail.selectedItems.map((service) => service.id));
                   setSelectedIds((current) => {
-                    const next = new Set([...current].filter((serviceId) => !visibleIds.has(serviceId)));
-                    nextVisibleIds.forEach((serviceId) => next.add(serviceId));
+                    const next = new Set([...current].filter((serviceId) => !pageIds.has(serviceId)));
+                    nextPageIds.forEach((serviceId) => next.add(serviceId));
                     return next;
                   });
                 }}
                 columnDefinitions={columnDefinitions}
-                items={visibleServices}
+                items={pagedServices}
                 empty={(
                   <Box textAlign="center" color="inherit">
                     <b>No services</b>
@@ -551,44 +930,64 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
                     />
                   </div>
                 )}
+                pagination={(
+                  <Pagination
+                    currentPageIndex={currentPageIndex}
+                    pagesCount={pagesCount}
+                    onChange={({ detail }) => setCurrentPageIndex(detail.currentPageIndex)}
+                    ariaLabels={{
+                      nextPageLabel: 'Next page',
+                      previousPageLabel: 'Previous page',
+                      pageLabel: (pageNumber) => `Page ${pageNumber}`,
+                    }}
+                  />
+                )}
                 header={(
                   <Header
                     counter={`(${visibleServices.length})`}
                     description={`${selectedIds.size} selected across all categories`}
                     actions={(
-                      <SpaceBetween direction="horizontal" size="xs">
-                        <Button disabled={selectedIds.size === 0 || jobRunning} onClick={() => void updateTracking(true)}>Track</Button>
-                        <Button disabled={selectedIds.size === 0 || jobRunning} onClick={() => void updateTracking(false)}>Untrack</Button>
-                        <Button disabled={selectedIds.size === 0 || jobRunning} onClick={() => setSelectedIds(new Set())}>Clear</Button>
-                        <Button iconName="view-full" disabled={selectedIds.size === 0 || jobRunning} onClick={() => void startJob('preview')}>Preview</Button>
-                        <Button variant="primary" iconName="upload" disabled={selectedIds.size === 0 || jobRunning} onClick={() => setPublishModalVisible(true)}>Publish</Button>
-                      </SpaceBetween>
+                      <div className="service-actions">
+                        <Button
+                          disabled={selectedIds.size === 0 || jobRunning}
+                          onClick={() => void updateTracking(true)}
+                        >
+                          Track
+                        </Button>
+                        <Button
+                          disabled={selectedIds.size === 0 || jobRunning}
+                          onClick={() => void updateTracking(false)}
+                        >
+                          Untrack
+                        </Button>
+                        <Button
+                          iconName="close"
+                          ariaLabel="Clear service selection"
+                          disabled={selectedIds.size === 0 || jobRunning}
+                          onClick={() => setSelectedIds(new Set())}
+                        />
+                        <Button
+                          iconName="view-full"
+                          disabled={selectedIds.size === 0 || jobRunning}
+                          onClick={() => void startJob('preview')}
+                        >
+                          Preview
+                        </Button>
+                        <Button
+                          variant="primary"
+                          iconName="upload"
+                          disabled={selectedIds.size === 0 || jobRunning}
+                          onClick={() => setPublishModalVisible(true)}
+                        >
+                          Publish
+                        </Button>
+                      </div>
                     )}
                   >
                     Services
                   </Header>
                 )}
               />
-
-              {currentJob && (
-                <Container
-                  header={(
-                    <Header
-                      variant="h2"
-                      description={`${currentJob.services.length || 'All tracked'} service${currentJob.services.length === 1 ? '' : 's'}; started ${new Date(currentJob.started_at).toLocaleTimeString()}`}
-                      actions={(
-                        <StatusIndicator type={currentJob.status === 'running' ? 'in-progress' : currentJob.status === 'succeeded' ? 'success' : 'error'}>
-                          {currentJob.status === 'running' ? 'Running' : currentJob.status === 'succeeded' ? 'Succeeded' : 'Failed'}
-                        </StatusIndicator>
-                      )}
-                    >
-                      {currentJob.kind === 'check' ? 'Checking source changes' : currentJob.kind === 'preview' ? 'Previewing selected services' : 'Publishing selected collections'}
-                    </Header>
-                  )}
-                >
-                  <pre className="job-output">{currentJob.output || 'Waiting for pipeline output...'}</pre>
-                </Container>
-              )}
             </SpaceBetween>
           </ContentLayout>
         )}
@@ -609,7 +1008,7 @@ function App({ authenticationEnabled = false, onSignOut }: AppProps) {
       >
         <SpaceBetween size="m">
           <Box>
-            This fetches the configured model source, synchronizes the local branch and any optional mirror, converts {selectedServices.length} selected service{selectedServices.length === 1 ? '' : 's'}, and writes changed collections to the configured Postman workspace.
+            Publish {pluralize(selectedServices.length, 'selected service')} to the configured Postman workspace.
           </Box>
           <Toggle checked={createMissing} onChange={({ detail }) => setCreateMissing(detail.checked)}>
             Create missing collections
