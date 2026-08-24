@@ -39,7 +39,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     // CLI argument parsing
-    implementation("info.picocli:picocli:4.7.5")
+    implementation("info.picocli:picocli:4.7.7")
 }
 
 application {
