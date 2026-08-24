@@ -36,7 +36,7 @@ dependencies {
     implementation("software.amazon.smithy:smithy-waiters:1.72.1")
 
     // JSON processing
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.code.gson:gson:2.14.0")
 
     // CLI argument parsing
     implementation("info.picocli:picocli:4.7.5")
