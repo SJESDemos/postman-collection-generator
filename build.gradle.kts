@@ -17,23 +17,23 @@ java {
 
 dependencies {
     // Smithy core and OpenAPI conversion
-    implementation("software.amazon.smithy:smithy-model:1.72.1")
-    implementation("software.amazon.smithy:smithy-openapi:1.72.1")
-    implementation("software.amazon.smithy:smithy-aws-traits:1.72.1")
-    implementation("software.amazon.smithy:smithy-aws-apigateway-openapi:1.72.1")
-    implementation("software.amazon.smithy:smithy-aws-iam-traits:1.72.1")
-    implementation("software.amazon.smithy:smithy-aws-cloudformation-traits:1.72.1")
-    implementation("software.amazon.smithy:smithy-rules-engine:1.72.1")
+    implementation("software.amazon.smithy:smithy-model:1.73.0")
+    implementation("software.amazon.smithy:smithy-openapi:1.73.0")
+    implementation("software.amazon.smithy:smithy-aws-traits:1.73.0")
+    implementation("software.amazon.smithy:smithy-aws-apigateway-openapi:1.73.0")
+    implementation("software.amazon.smithy:smithy-aws-iam-traits:1.73.0")
+    implementation("software.amazon.smithy:smithy-aws-cloudformation-traits:1.73.0")
+    implementation("software.amazon.smithy:smithy-rules-engine:1.73.0")
     // AWS-specific endpoint rules functions (aws.partition, aws.parseArn, ...) registered
     // into the rules engine via SPI; required to parse smithy.rules#endpointBdd/RuleSet.
-    implementation("software.amazon.smithy:smithy-aws-endpoints:1.72.1")
+    implementation("software.amazon.smithy:smithy-aws-endpoints:1.73.0")
     // smithy.test#smokeTests trait definition + the aws.test#AwsVendorParams shape it
     // references (used by connecthealth). Required because ALLOW_UNKNOWN_TRAITS is off.
-    implementation("software.amazon.smithy:smithy-smoke-test-traits:1.72.1")
-    implementation("software.amazon.smithy:smithy-aws-smoke-test-model:1.72.1")
+    implementation("software.amazon.smithy:smithy-smoke-test-traits:1.73.0")
+    implementation("software.amazon.smithy:smithy-aws-smoke-test-model:1.73.0")
     // smithy.waiters#waitable trait definition (used by lambda). Required because
     // ALLOW_UNKNOWN_TRAITS is off.
-    implementation("software.amazon.smithy:smithy-waiters:1.72.1")
+    implementation("software.amazon.smithy:smithy-waiters:1.73.0")
 
     // JSON processing
     implementation("com.google.code.gson:gson:2.10.1")
