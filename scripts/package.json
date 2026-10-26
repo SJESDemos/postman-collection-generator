@@ -7,7 +7,7 @@
   "main": "openapi-to-postman.js",
   "dependencies": {
     "commander": "^12.1.0",
-    "openapi-to-postmanv2": "^6.3.3"
+    "openapi-to-postmanv2": "^6.4.1"
   },
   "overrides": {
     "js-yaml": "^4.3.1",
